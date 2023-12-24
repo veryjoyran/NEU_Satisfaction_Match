@@ -1,8 +1,38 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <iterator>
+#include <FL/Fl.H>
+#include <FL/Fl_Window.H>
+#include <FL/Fl_Button.H>
+#include <FL/Fl_Multiline_Input.H>
+#include <FL/Fl_Box.H>
+#include <sstream>
+#include <string>
+#include <fstream>
 #define INT_MAX 2147483647
 using namespace std;
+
+
+// 全局变量，用于访问 FLTK 控件
+Fl_Multiline_Input *mfInput;
+Fl_Multiline_Input *fmInput;
+Fl_Box *resultBox;
+
+// 将字符串转换为整数矩阵
+vector<vector<int>> stringToMatrix(const string &str) {
+    istringstream iss(str);
+    vector<vector<int>> matrix;
+    string line;
+    while (getline(iss, line)) {
+        istringstream lineStream(line);
+        matrix.emplace_back(istream_iterator<int>{lineStream}, istream_iterator<int>());
+    }
+    return matrix;
+}
+
+
+
 
 void createMatrix(vector<vector<int>> &matrix, int rows, int cols) {
     matrix.resize(rows);
@@ -31,17 +61,50 @@ void printMatrix(vector<vector<int>> &matrix) {
 }
 
 vector<vector<int>> createCombinedSatisfactionMatrix(vector<vector<int>>& mf, vector<vector<int>>& fm) {
-    int rows = mf.size();
-    int cols = fm.size();
-    vector<vector<int>> combinedSatisfactionMatrix;
-    createMatrix(combinedSatisfactionMatrix, rows, cols);
-    for(int i=0; i<rows; i++) {
-        for(int j=0; j<cols; j++) {
+    int maleCount = mf.size();  // 男生数量
+    int femaleCount = fm.size(); // 女生数量
+
+    // 扩展矩阵以适应女生数量多于男生的情况
+    if (maleCount < femaleCount) {
+        // 扩展 mf 矩阵，增加虚拟男生
+        for (auto& row : mf) {
+            row.resize(femaleCount, 0);
+        }
+        // 同时扩展 fm 矩阵，为每个女生添加对虚拟男生的满意度
+        for (auto& row : fm) {
+            while (row.size() < maleCount) {
+                row.push_back(0);
+            }
+        }
+    }
+    //扩展矩阵以适应男生数量多于女生数量的情况
+    else{
+        // 扩展 fm 矩阵，增加虚拟女生
+        for (auto& row : fm) {
+            row.resize(maleCount, 0);
+        }
+        // 同时扩展 mf 矩阵，为每个男生添加对虚拟女生的满意度
+        for (auto& row : mf) {
+            while (row.size() < femaleCount) {
+                row.push_back(0);
+            }
+        }
+    }
+
+    // 创建组合满意度矩阵
+    int combinedSize = max(maleCount, femaleCount);
+    vector<vector<int>> combinedSatisfactionMatrix(combinedSize, vector<int>(combinedSize, 0));
+
+    // 计算组合满意度
+    for (int i = 0; i < maleCount; i++) {
+        for (int j = 0; j < femaleCount; j++) {
             combinedSatisfactionMatrix[i][j] = mf[i][j] + fm[j][i];
         }
     }
+
     return combinedSatisfactionMatrix;
 }
+
 
 //增加男人
 void addMale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<int>>& mf, vector<vector<int>>& fm) {
@@ -85,6 +148,38 @@ void addFemale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<in
         int satisfaction;
         cin>>satisfaction;
         mf[i].push_back(satisfaction);
+    }
+
+    //更新满意度矩阵
+    combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+}
+
+//删除指定下标位置的男人
+void deleteMale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<int>>& mf, vector<vector<int>>& fm, int index) {
+    int rows = combinedSatisfactionMatrix.size();
+    int cols = combinedSatisfactionMatrix[0].size();
+    // 删除男人矩阵中该男人对女人的满意度
+    mf.erase(mf.begin()+index);
+
+    // 删除女人矩阵中女人对该男人的的满意度
+    for(int i = 0; i < cols; ++i) {
+        fm[i].erase(fm[i].begin()+index);
+    }
+
+    //更新满意度矩阵
+    combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+}
+
+//删除指定下标位置的女人
+void deleteFemale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<int>>& mf, vector<vector<int>>& fm, int index) {
+    int rows = combinedSatisfactionMatrix.size();
+    int cols = combinedSatisfactionMatrix[0].size();
+    // 删除女人矩阵中该女人对男人的满意度
+    fm.erase(fm.begin()+index);
+
+    // 删除男人矩阵中男人对该女人的的满意度
+    for(int i = 0; i < rows; ++i) {
+        mf[i].erase(mf[i].begin()+index);
     }
 
     //更新满意度矩阵
@@ -156,9 +251,92 @@ vector<int> KM(vector<vector<int>>& combinedSatisfactionMatrix) {
     return match;
 }
 
+//匹配按钮回调函数
+void match_cb(Fl_Widget*, void*) {
+    cout<<"匹配逻辑开始执行"<<endl;
+    int rows, cols;
+
+    // 从输入框获取数据并转换为矩阵
+    string mfStr = mfInput->value();
+    vector<vector<int>> mfMatrix = stringToMatrix(mfStr);
+
+    string fmStr = fmInput->value();
+    vector<vector<int>> fmMatrix = stringToMatrix(fmStr);
+
+    // 这里添加您计算匹配的逻辑
+    vector<vector<int>> combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mfMatrix, fmMatrix);
+    vector<int> match = KM(combinedSatisfactionMatrix);
+
+    // 显示匹配结果
+    ostringstream result;
+    for (int i = 0; i < match.size(); ++i) {
+        result << "女运动员" << i << "与男运动员" << match[i] << "匹配\n";
+    }
+     
+    // // 将结果写入文件进行调试
+    // ofstream file("output.txt");
+    // file << result.str();
+    // file.close();
+
+  
+
+    cout << "控制台输出:\n" << result.str() << endl;
+    resultBox->label("简单测试文本");
+    resultBox->label(result.str().c_str());
+    resultBox->redraw();
+    resultBox->show();
+    cout<<"匹配逻辑执行完毕"<<endl;
+
+}
+
+
 
 int main() {
-    int rows, cols;
+    Fl_Window *window = new Fl_Window(2000, 2000, "Satisfaction Match");
+    Fl_Box* Theme=new Fl_Box(500, 80, 1000, 50, "东北大学数据结构课程设计B题——满意度匹配");
+    Theme->labelsize(48); // 设置文本的字体大小
+    Theme->color(FL_WHITE); // 设置Fl_Box的背景颜色为白色
+    Theme->labelcolor(FL_BLACK); // 设置文本的颜色为黑色
+
+    Fl_Box* MaleInputMartix=new Fl_Box(250, 365, 600, 36, "男运动员对女运动员的满意度矩阵");
+    MaleInputMartix->labelsize(36); // 设置文本的字体大小
+    // 设置男运动员的输入框的尺寸和位置
+    mfInput = new Fl_Multiline_Input(250, 400, 600, 600);
+    mfInput->textsize(30);
+
+    Fl_Box* FemaleInputMartix=new Fl_Box(1000, 365, 600, 36, "女运动员对男运动员的满意度矩阵");
+    FemaleInputMartix->labelsize(36); // 设置文本的字体大小
+    // 设置女运动员的输入框的尺寸和位置
+    fmInput = new Fl_Multiline_Input(1000, 400, 600, 600);
+    fmInput->textsize(30);
+
+    
+    // 调整结果显示区域的尺寸和位置，以适应更大的窗口
+    resultBox = new Fl_Box(250, 1200, 1350, 700);
+    resultBox->label("匹配结果");
+    resultBox->labelsize(36); // 设置文本的字体大小
+    resultBox->box(FL_BORDER_BOX); // 设置边框样式
+    resultBox->color(FL_WHITE); // 设置背景颜色
+    resultBox->labelcolor(FL_BLACK); // 设置文本颜色
+
+
+    // 调整按钮的位置和尺寸，确保在视觉上突出
+    Fl_Button *matchButton = new Fl_Button(790, 1050, 300, 100, "开始匹配");
+    matchButton->labelsize(48); // 设置文本的字体大小
+    matchButton->callback(match_cb, nullptr);
+
+   
+
+    window->end();
+    window->show();
+
+    return Fl::run();
+}
+
+
+
+/*
+int rows, cols;
     cout<<"请输入男生人数"<<endl;
     cin >> rows;
     cout<<"请输入女生人数"<<endl;
@@ -211,7 +389,13 @@ int main() {
     for(int i = 0; i < cols; ++i) {
         cout << "女运动员" << i << "与男运动员" << match[i] << "匹配" << endl;
     }
+1 2 3
+1 2 3
+1 2 3
+1 2 3
 
 
-    return 0;
-}
+1 2 3 4
+1 2 3 4
+1 2 3 4
+*/
