@@ -12,6 +12,8 @@
 #include <sstream>
 #include <string>
 #include <fstream>
+#include <cstdlib>  
+#include <ctime>    
 #define INT_MAX 2147483647
 using namespace std;
 
@@ -187,6 +189,24 @@ void deleteFemale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector
     //更新满意度矩阵
     combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
 }
+
+// 生成一个指定大小的矩阵，并用1到maxValue之间的随机数填充
+vector<vector<int>> generateRandomMatrix(int maxValue) {
+    // 随机生成矩阵的大小（例如：行数和列数在2到10之间）
+    int rows = rand() % maxValue + 2; // 2到100
+    int cols = rand() % maxValue + 2; // 2到100
+
+    vector<vector<int>> matrix(rows, vector<int>(cols));
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = rand() % maxValue + 1; // 生成1到maxValue之间的随机数
+        }
+    }
+
+    return matrix;
+}
+
 
 //寻找增广路
 bool findPath(int u, vector<int>& match, vector<int>& lx, vector<int>& ly, vector<bool>& sx, vector<bool>& sy, vector<int>& slack, vector<int>& pre,vector<vector<int>>& combinedSatisfactionMatrix) {
@@ -365,7 +385,39 @@ int visualTesting(){
 
 
 void consoleTesting(){
-    int rows, cols;
+    //设置随机生成或者自行输入两种方式
+    cout<<"请选择测试方式："<<endl;
+    cout<<"1.随机生成"<<endl;
+    cout<<"2.自行输入"<<endl;
+    int choice;
+    cin>>choice;
+    if(choice==1){
+        srand(static_cast<unsigned>(time(nullptr)));
+        int maxValue = 100;
+        vector<vector<int>> combinedSatisfactionMatrix = generateRandomMatrix(maxValue);
+        cout << "合并后的满意度矩阵为:" << endl;
+        vector<vector<int>> maleToFemMatrix = generateRandomMatrix(maxValue);
+        printMatrix(maleToFemMatrix);
+        //KM算法
+         //进行满意度匹配
+        vector<int> match=KM(combinedSatisfactionMatrix);
+        // 计算满意度总和
+        int totalSatisfaction = 0;
+        for (int i = 0; i < match.size(); ++i) {
+            int femaleIndex = i;
+            int maleIndex = match[i];
+            totalSatisfaction += combinedSatisfactionMatrix[maleIndex][femaleIndex];
+        }
+        cout<<"匹配结果为："<<endl;
+        int cols=combinedSatisfactionMatrix[0].size();
+        for(int i = 0; i < cols; ++i) {
+            cout << "女运动员" << i << "与男运动员" << match[i] << "匹配" << endl;
+        }
+        cout<<"满意度总和为："<<totalSatisfaction<<endl;
+
+    }
+    else if(choice==2){
+        int rows, cols;
     cout<<"请输入男生人数"<<endl;
     cin >> rows;
     cout<<"请输入女生人数"<<endl;
@@ -464,8 +516,15 @@ void consoleTesting(){
         cout<<"输入错误"<<endl;
     }
     }
+    }
+    else{
+        cout<<"输入错误"<<endl;
+    }
+    
     
 }
+
+
 
 int main() {
     cout<<"请选择测试方式："<<endl;
