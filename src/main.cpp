@@ -35,9 +35,6 @@ vector<vector<int>> stringToMatrix(const string &str) {
     return matrix;
 }
 
-
-
-
 void createMatrix(vector<vector<int>> &matrix, int rows, int cols) {
     matrix.resize(rows);
     for (int i = 0; i < rows; i++) {
@@ -109,6 +106,18 @@ vector<vector<int>> createCombinedSatisfactionMatrix(vector<vector<int>>& mf, ve
     return combinedSatisfactionMatrix;
 }
 
+vector<vector<int>> createCombinedSatisfactionMatrixConsole(vector<vector<int>>& mf, vector<vector<int>>& fm) {
+    int rows = mf.size();
+    int cols = fm.size();
+    vector<vector<int>> combinedSatisfactionMatrix;
+    createMatrix(combinedSatisfactionMatrix, rows, cols);
+    for(int i=0; i<rows; i++) {
+        for(int j=0; j<cols; j++) {
+            combinedSatisfactionMatrix[i][j] = mf[i][j] + fm[j][i];
+        }
+    }
+    return combinedSatisfactionMatrix;
+}
 
 //增加男人
 void addMale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<int>>& mf, vector<vector<int>>& fm) {
@@ -131,7 +140,7 @@ void addMale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<int>
     }
 
     //更新满意度矩阵
-    combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+    combinedSatisfactionMatrix = createCombinedSatisfactionMatrixConsole(mf, fm);
 }
 
 //增加女人
@@ -155,7 +164,7 @@ void addFemale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<in
     }
 
     //更新满意度矩阵
-    combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+    combinedSatisfactionMatrix = createCombinedSatisfactionMatrixConsole(mf, fm);
 }
 
 //删除指定下标位置的男人
@@ -171,7 +180,7 @@ void deleteMale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector<i
     }
 
     //更新满意度矩阵
-    combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+    combinedSatisfactionMatrix = createCombinedSatisfactionMatrixConsole(mf, fm);
 }
 
 //删除指定下标位置的女人
@@ -187,7 +196,7 @@ void deleteFemale(vector<vector<int>>& combinedSatisfactionMatrix, vector<vector
     }
 
     //更新满意度矩阵
-    combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+    combinedSatisfactionMatrix = createCombinedSatisfactionMatrixConsole(mf, fm);
 }
 
 // 生成一个指定大小的矩阵，并用1到maxValue之间的随机数填充
@@ -206,7 +215,6 @@ vector<vector<int>> generateRandomMatrix(int maxValue) {
 
     return matrix;
 }
-
 
 //寻找增广路
 bool findPath(int u, vector<int>& match, vector<int>& lx, vector<int>& ly, vector<bool>& sx, vector<bool>& sy, vector<int>& slack, vector<int>& pre,vector<vector<int>>& combinedSatisfactionMatrix) {
@@ -272,7 +280,6 @@ vector<int> KM(vector<vector<int>>& combinedSatisfactionMatrix) {
     }
     return match;
 }
-
 // 匹配按钮回调函数
 void match_cb(Fl_Widget*, void*) {
     cout << "匹配逻辑开始执行" << endl;
@@ -342,7 +349,6 @@ void match_cb(Fl_Widget*, void*) {
     cout << "匹配逻辑执行完毕" << endl;
 }
 
-
 int visualTesting(){
     Fl_Window *window = new Fl_Window(2000, 2000, "Satisfaction Match");
     Fl_Box* Theme=new Fl_Box(500, 80, 1000, 50, "东北大学数据结构课程设计B题——满意度匹配");
@@ -393,7 +399,7 @@ void consoleTesting(){
     cin>>choice;
     if(choice==1){
         srand(static_cast<unsigned>(time(nullptr)));
-        int maxValue = 100;
+        int maxValue = 10;
         vector<vector<int>> combinedSatisfactionMatrix = generateRandomMatrix(maxValue);
         cout << "合并后的满意度矩阵为:" << endl;
         vector<vector<int>> maleToFemMatrix = generateRandomMatrix(maxValue);
@@ -439,7 +445,7 @@ void consoleTesting(){
     printMatrix(fm);
 
 
-    vector<vector<int>> combinedSatisfactionMatrix = createCombinedSatisfactionMatrix(mf, fm);
+    vector<vector<int>> combinedSatisfactionMatrix = createCombinedSatisfactionMatrixConsole(mf, fm);
     cout<<"男生和女生的满意度矩阵为："<<endl;
     printMatrix(combinedSatisfactionMatrix);
 
